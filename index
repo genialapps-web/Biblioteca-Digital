@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Master Vault VIP - El Tesoro Digital</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #020617;
+            --accent: #fbbf24;
+            --sky: #0ea5e9;
+            --success: #10b981;
+            --vip-gold: linear-gradient(45deg, #fbbf24, #f59e0b);
+            --clip-gradient: linear-gradient(90deg, #18B8DC 0%, #086F9A 100%);
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #020617; color: #f8fafc; line-height: 1.6; overflow-x: hidden; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px; }
+
+        /* --- NOTIFICACIONES --- */
+        #sale-notification {
+            position: fixed; bottom: 20px; left: 20px; background: white;
+            padding: 12px 20px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 12px; z-index: 5000;
+            transform: translateY(150%); transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            border-left: 4px solid var(--success); max-width: 280px;
+        }
+        #sale-notification.show { transform: translateY(0); }
+        .sale-icon { background: #dcfce7; border-radius: 50%; padding: 8px; font-size: 1.2rem; }
+        .sale-text { font-size: 0.75rem; color: #1e293b; font-weight: 600; }
+
+        /* --- HERO --- */
+        .hero { 
+            background: radial-gradient(circle at top, #1e293b 0%, #020617 100%); 
+            padding: 80px 20px 40px; text-align: center;
+        }
+        .badge-vip { background: var(--vip-gold); color: var(--primary); font-weight: 900; padding: 6px 18px; border-radius: 50px; font-size: 0.75rem; display: inline-block; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; }
+        .hero h1 { font-size: 2.8rem; font-weight: 800; margin: 10px 0; line-height: 1; letter-spacing: -2px; }
+        
+        .live-tag {
+            background: rgba(16, 185, 129, 0.1); color: var(--success);
+            padding: 4px 12px; border-radius: 50px; font-size: 0.7rem;
+            font-weight: 800; border: 1px solid var(--success);
+            display: inline-flex; align-items: center; gap: 5px; margin-top: 15px;
+        }
+        .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: pulse 1.5s infinite; }
+
+        /* --- BUSCADOR --- */
+        .search-container { margin-top: 30px; position: relative; }
+        .search-bar {
+            width: 100%; padding: 20px 30px; border-radius: 50px; border: 2px solid var(--glass-border);
+            background: rgba(255,255,255,0.05); color: white; outline: none; transition: 0.3s; font-size: 1rem;
+        }
+        .search-bar:focus { border-color: var(--sky); background: rgba(255,255,255,0.1); }
+        .search-result { 
+            margin-top: 15px; background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success);
+            padding: 15px; border-radius: 20px; font-size: 0.9rem; display: none; animation: fadeIn 0.4s;
+        }
+        
+        /* --- SECCIONES DE CONTENIDO --- */
+        .section-title { text-align: left; font-weight: 800; font-size: 1.3rem; margin: 45px 0 20px; color: var(--sky); text-transform: uppercase; letter-spacing: 1px; }
+        
+        .content-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .content-card {
+            background: var(--glass); padding: 18px; border-radius: 20px;
+            border: 1px solid var(--glass-border); display: flex; align-items: center; gap: 15px;
+        }
+        .content-card i { font-size: 1.5rem; }
+        .content-info b { display: block; font-size: 0.95rem; color: #fff; }
+        .content-info span { font-size: 0.8rem; color: #94a3b8; }
+
+        /* --- RESEÑAS --- */
+        .review-card { 
+            background: white; padding: 22px; border-radius: 25px; 
+            color: #1e293b; margin-bottom: 15px; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .stars { color: #fbbf24; margin-bottom: 5px; display: block; }
+        .review-user { font-weight: 800; color: var(--sky); font-size: 0.75rem; margin-top: 8px; display: block; }
+
+        /* --- PASO A PASO --- */
+        .step-box { background: var(--glass); padding: 20px; border-radius: 25px; margin-bottom: 15px; border: 1px solid var(--glass-border); display: flex; gap: 15px; }
+        .step-n { background: var(--sky); min-width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+
+        /* --- CTA CARD (FIXED OVERLAP) --- */
+        .cta-card {
+            background: white; color: var(--primary); border-radius: 40px;
+            padding: 40px 20px; text-align: center; margin: 60px 0;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .cta-card h3 { font-size: 0.8rem; letter-spacing: 2px; opacity: 0.6; margin-bottom: 10px; }
+        .new-price { font-size: 5rem; font-weight: 900; line-height: 1; letter-spacing: -3px; margin: 10px 0; }
+        
+        .btn-pay-clip {
+            display: flex; align-items: center; justify-content: center; gap: 12px;
+            background: var(--clip-gradient); color: white; width: 100%; max-width: 320px;
+            padding: 20px; border-radius: 22px; text-decoration: none; 
+            font-weight: 800; font-size: 1.2rem; margin: 20px 0;
+            transition: 0.3s; box-shadow: 0 8px 20px rgba(8, 111, 154, 0.3);
+        }
+        .btn-pay-clip:active { transform: scale(0.97); }
+        .btn-pay-clip img { height: 28px; width: auto; }
+
+        .payment-icons { margin-top: 10px; opacity: 0.8; }
+        .payment-icons img { height: 20px; margin: 0 5px; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+    <div id="sale-notification">
+        <div class="sale-icon">⚡</div>
+        <div class="sale-text">
+            <p id="buyer-name">Cargando...</p>
+            <span style="color: var(--sky); font-size: 0.7rem; display: block;">Acceso VIP activado ahora</span>
+        </div>
+    </div>
+
+    <header class="hero">
+        <div class="container">
+            <div class="badge-vip" data-aos="fade-down">PROYECTO MASTER VAULT 2026</div>
+            <h1 data-aos="fade-up">LA BÓVEDA DIGITAL MÁS GRANDE</h1>
+            <div class="live-tag" data-aos="fade-up">
+                <div class="dot"></div> ACTUALIZADO HACE 5 MINUTOS
+            </div>
+
+            <div class="search-container" data-aos="fade-up" data-aos-delay="200">
+                <input type="text" id="smartSearch" class="search-bar" placeholder="Busca cursos, medicina, juegos..." onkeyup="checkSearch()">
+                <div id="resultBox" class="search-result"></div>
+            </div>
+        </div>
+    </header>
+<div class="vip-access-box">
+    <style>
+        .vip-access-box {
+            background: linear-gradient(135deg, #1e293b 0%, #020617 100%);
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            border-radius: 35px;
+            padding: 40px 25px;
+            margin: 30px 0;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .vip-title {
+            color: #fbbf24;
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .vip-text {
+            color: #94a3b8;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            max-width: 450px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .btn-portal {
+            position: relative;
+            display: inline-block;
+            background: transparent;
+            color: white;
+            padding: 16px 40px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 800;
+            font-size: 1.1rem;
+            border: 2px solid #fbbf24;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            z-index: 1;
+        }
+
+        /* Efecto de Brillo Animado */
+        .btn-portal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                120deg,
+                transparent,
+                rgba(251, 191, 36, 0.4),
+                transparent
+            );
+            transition: all 0.6s;
+        }
+
+        .btn-portal:hover::before {
+            left: 100%;
+        }
+
+        .btn-portal:hover {
+            background: #fbbf24;
+            color: #020617;
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(251, 191, 36, 0.4);
+        }
+
+        .btn-portal:active {
+            transform: translateY(0);
+        }
+
+        .vip-note {
+            display: block;
+            margin-top: 18px;
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+
+    <h2 class="vip-title">🔐 ACCESO MIEMBROS VIP</h2>
+    <p class="vip-text">
+        Bienvenido de nuevo. Ingresa con tu clave única para explorar las carpetas actualizadas y descargar tu contenido.
+    </p>
+    
+    <a href="TU_PAGINA_DE_ACCESO.html" class="btn-portal">
+        ABRIR BÓVEDA DIGITAL
+    </a>
+    
+    <span class="vip-note">● Servidor Activo 24/7 ●</span>
+</div>
+
+    <div class="container">
+       
+        <h3 class="section-title" data-aos="fade-right">🛠️ Cursos y Oficios</h3>
+        <div class="content-grid">
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Cursos de Reparación</b>
+                    <span>Celulares, PlayStation 2, Nintendo, Artefactos Eléctricos.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Oficios Profesionales</b>
+                    <span>Carpintería, Cerrajería, Corte y Confección, Resina Avanzada.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Marketing y Negocios</b>
+                    <span>Estrategia Digital, Multiplicador de Ventas Pro, Publicidad Digital.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Gastronomía Completa</b>
+                    <span>Curso de Cocinero, Pastelería, Helados y Postres, Recetarios VIP.</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title" data-aos="fade-right">🩺 Salud y Académico</h3>
+        <div class="content-grid">
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Mega Pack Medicina</b>
+                    <span>Manuales AMIR Salud México, Material de Medicina + Extras.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Educación y Software</b>
+                    <span>Inglés sin Barreras, Excel de 0 a Experto, Sismología, Arquitectura.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Desarrollo Personal</b>
+                    <span>Felicidad sin Deudas, Espiritualidad, Tarot, Biblioteca Esotérica.</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title" data-aos="fade-right">🎮 Entretenimiento y Gaming</h3>
+        <div class="content-grid">
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Consolas Retro</b>
+                    <span>PS2, PSX, PSP, Wii, Wii U, 3DS, N64, Super Nintendo, NES, Atari.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Lectura Masiva</b>
+                    <span>+80,000 Libros, Colección Harry Potter, Cómics, El Hombre Araña.</span>
+                </div>
+            </div>
+            <div class="content-card" data-aos="zoom-in">
+                <div class="content-info">
+                    <b>Multimedia</b>
+                    <span>Pack 3000 Audiolibros, National Geographic, Colección OVNI.</span>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="section-title" data-aos="fade-right">🚀 ¿Cómo accedo hoy mismo?</h3>
+        <div class="step-box" data-aos="fade-up">
+            <div class="step-n">1</div>
+            <div>
+                <b>Realiza el pago único</b>
+                <p style="font-size: 0.8rem; color: #94a3b8;">Haz clic en el botón azul de abajo y paga $99 MXN con Clip.</p>
+            </div>
+        </div>
+        <div class="step-box" data-aos="fade-up">
+            <div class="step-n">2</div>
+            <div>
+                <b>Obtén tu Clave VIP</b>
+                <p style="font-size: 0.8rem; color: #94a3b8;">Al finalizar, verás tu código de acceso personal en pantalla.</p>
+            </div>
+        </div>
+        
+        <h3 class="section-title" data-aos="fade-right">💬 Opiniones Reales</h3>
+        <div class="review-card" data-aos="fade-up">
+            <span class="stars">★★★★★</span>
+            <p>"La carpeta de medicina AMIR sola vale 10 veces lo que pagué aquí. Increíble servicio."</p>
+            <span class="review-user">- Dr. Armando S.</span>
+        </div>
+        <div class="review-card" data-aos="fade-up">
+            <span class="stars">★★★★★</span>
+            <p>"Pude leer todos mis libros favoritos , ademas incluye toda la saga de Harry Potter."</p>
+            <span class="review-user">- Alicia Mtz.</span>
+        </div>
+        <div class="review-card" data-aos="fade-up">
+            <span class="stars">★★★★★</span>
+            <p>"Me encanta todos los cursos con los que cuenta, podre poner mi negocio gracias a este pack."</p>
+            <span class="review-user">- Mauricio Garcia O.</span>
+        </div>
+        <div class="review-card" data-aos="fade-up">
+            <span class="stars">★★★★★</span>
+            <p>"La verdad tenia mis dudas sobre si recibiria el contenido , lo compre y fue la mejor decisión que he tomado, no duden en adquirir el pack."</p>
+            <span class="review-user">- Silvia M.</span>
+        </div>
+        <div class="review-card" data-aos="fade-up">
+            <span class="stars">★★★★★</span>
+            <p>"Soy fan de lo retro y tener los juegos de todas las consolas en un link es lo mejor que me pasó."</p>
+            <span class="review-user">- Javier G. (Gamer)</span>
+        </div>
+
+        <div class="cta-card" data-aos="zoom-in">
+            <h3>PRECIO POR LANZAMIENTO</h3>
+            <div class="new-price">$99</div>
+            <p style="font-weight: 700; color: #1e293b;">Obten tu Clave de Acceso + Actualizaciones diarias</p>
+            
+            <a href="https://pago.clip.mx/v3/11b820f4-94cd-489c-8e74-bbf250ea8b94" class="btn-pay-clip">
+                <img src="https://assets-global.website-files.com/62588b32d8d6105ab7aa9721/63bf568610f3fdf437235192_Preview.svg" alt="Clip Logo">
+                PAGAR CON CLIP
+            </a>
+
+            <div class="payment-icons">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal">
+            </div>
+            <p style="font-size: 0.7rem; margin-top: 15px; color: #64748b;">🔐 Transacción 100% protegida por Clip México</p>
+        </div>
+
+        <footer style="text-align: center; padding: 40px 0; opacity: 0.4; font-size: 0.7rem;">
+            Master Vault VIP - Contenido Digital 2026<br>
+            Todos los derechos reservados.
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        AOS.init({ duration: 800, once: true });
+
+        function checkSearch() {
+            const val = document.getElementById('smartSearch').value;
+            const box = document.getElementById('resultBox');
+            if(val.length > 2) {
+                box.style.display = "block";
+                box.innerHTML = `✅ ¡Encontrado! Tenemos archivos premium de "<b>${val}</b>" en el servidor VIP.`;
+            } else { box.style.display = "none"; }
+        }
+
+        const buyers = ["Carlos R.", "Ana M.", "Pedro S.", "Ximena T.", "Luis B.", "Fernando G.", "Lucía P.", "Jorge M.", "Sofía H."];
+        function showNotification() {
+            const name = buyers[Math.floor(Math.random() * buyers.length)];
+            document.getElementById('buyer-name').innerText = name + " acaba de entrar";
+            const notification = document.getElementById('sale-notification');
+            notification.classList.add('show');
+            setTimeout(() => { notification.classList.remove('show'); }, 4000);
+        }
+        setInterval(showNotification, 12000);
+        setTimeout(showNotification, 2000);
+    </script>
+</body>
+</html>
+
