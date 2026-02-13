@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Plataforma VIP - Firestore Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-dark: #0f172a; --sidebar-bg: #1e293b; --accent: #009ee3; --text-main: #f8fafc; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; }
+
+        /* --- LOGIN --- */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at top, #1e293b, #020617);
+            z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .login-card { background: rgba(255,255,255,0.03); padding: 40px 30px; border-radius: 30px; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 360px; backdrop-filter: blur(15px); text-align: center; }
+        .login-card h2 { color: var(--accent); margin-bottom: 10px; font-weight: 800; }
+        .login-card p { font-size: 0.75rem; opacity: 0.6; margin-bottom: 20px; }
+        
+        input#accessCode { width: 100%; padding: 16px; border-radius: 12px; border: 1px solid #334155; background: #020617; color: white; text-align: center; font-size: 1.2rem; font-weight: 800; outline: none; margin-bottom: 15px; box-sizing: border-box; }
+        .btn-login { width: 100%; background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; }
+        #loginStatus { margin-top: 15px; font-size: 0.8rem; font-weight: 600; line-height: 1.4; }
+
+        /* --- UI PRINCIPAL --- */
+        #mainUI { display: none; }
+        header { background: #111827; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        .search-area { padding: 15px; background: var(--sidebar-bg); }
+        #folderSearch { width: 100%; background: #0f172a; border: 1px solid #475569; padding: 12px; border-radius: 10px; color: white; outline: none; box-sizing: border-box; }
+        #menu { padding: 10px; overflow-y: auto; height: calc(100vh - 140px); }
+        .folder-item { width: 100%; background: transparent; border: 1px solid #334155; color: #94a3b8; padding: 15px; margin-bottom: 8px; border-radius: 12px; text-align: left; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+
+        /* VISOR */
+        #contentOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; display: none; flex-direction: column; }
+        .viewer-header { background: #1e293b; padding: 10px; display: flex; align-items: center; gap: 10px; color: white; font-size: 0.8rem; }
+        .back-btn { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        iframe { flex: 1; width: 100%; border: none; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-card">
+        <h2>SISTEMA VIP</h2>
+        <p>Tu clave permite hasta 3 dispositivos vinculados por seguridad.</p>
+        <input type="text" id="accessCode" placeholder="Ingresa tu clave" autocomplete="off">
+        <button class="btn-login" onclick="validarAcceso()">VALIDAR ACCESO</button>
+        <div id="loginStatus"></div>
+    </div>
+</div>
+
+<div id="mainUI">
+    <header>
+        <div style="font-weight: 800; color: var(--accent);">BIBLIOTECA MASTER</div>
+        <div style="font-size: 0.6rem; background: #22c55e; padding: 4px 10px; border-radius: 20px; font-weight: 800;">EN LÍNEA</div>
+    </header>
+    <div class="search-area">
+        <input type="text" id="folderSearch" placeholder="🔍 Buscar en 180,000 archivos..." onkeyup="filtrarCarpetas()">
+    </div>
+    <nav id="menu"></nav>
+</div>
+
+<div id="contentOverlay">
+    <div class="viewer-header">
+        <button class="back-btn" onclick="cerrarVisor()">⬅ VOLVER</button>
+        <span id="folderTitle">Contenido</span>
+    </div>
+    <iframe id="mainViewer" src=""></iframe>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtjiAQgS2VjEwbHleBBUNm9EKx0tC9q7M",
+    authDomain: "mibibliotecadigital-4ac7f.firebaseapp.com",
+    projectId: "mibibliotecadigital-4ac7f",
+    storageBucket: "mibibliotecadigital-4ac7f.firebasestorage.app",
+    messagingSenderId: "654550297574",
+    appId: "1:654550297574:web:dfdfefbd8954ad399b4427",
+    databaseURL: "https://mibibliotecadigital-4ac7f-default-rtdb.firebaseio.com"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const rtdb = getDatabase(app); // Para las carpetas
+  const db = getFirestore(app);  // Para las claves (Firestore)
+
+  function getDeviceId() {
+      let id = localStorage.getItem('device_token');
+      if (!id) {
+          id = 'dev_' + Math.random().toString(36).substr(2, 9);
+          localStorage.setItem('device_token', id);
+      }
+      return id;
+  }
+
+  window.validarAcceso = async function() {
+    const codigo = document.getElementById('accessCode').value.trim().toUpperCase();
+    const status = document.getElementById('loginStatus');
+    const myId = getDeviceId();
+
+    if(!codigo) return;
+    status.innerText = "Verificando clave en Firestore...";
+    status.style.color = "white";
+
+    try {
+        const docRef = doc(db, "claves", codigo);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            const listaDispositivos = data.dispositivos || [];
+
+            // 1. Ya registrado
+            if (listaDispositivos.includes(myId)) {
+                permitirAcceso();
+                return;
+            }
+
+            // 2. Espacio para nuevo
+            if (listaDispositivos.length < 3) {
+                await updateDoc(docRef, {
+                    dispositivos: arrayUnion(myId)
+                });
+                permitirAcceso();
+            } else {
+                status.style.color = "#ef4444";
+                status.innerText = "❌ LÍMITE ALCANZADO: Máximo 3 dispositivos.";
+            }
+        } else {
+            status.style.color = "#ef4444";
+            status.innerText = "❌ CLAVE INVÁLIDA: El código no existe en Firestore.";
+        }
+    } catch (e) {
+        console.error(e);
+        status.innerText = "Error de conexión con Firestore.";
+    }
+  }
+
+  function permitirAcceso() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('mainUI').style.display = 'block';
+      cargarCarpetas();
+  }
+
+  async function cargarCarpetas() {
+      const snap = await get(ref(rtdb, 'carpetas'));
+      const menu = document.getElementById('menu');
+      if(snap.exists()) {
+          menu.innerHTML = "";
+          snap.forEach(child => {
+              const d = child.val();
+              const b = document.createElement('button');
+              b.className = 'folder-item';
+              b.innerHTML = `📁 &nbsp; ${d.nombre}`;
+              b.onclick = () => {
+                  document.getElementById('folderTitle').innerText = d.nombre;
+                  document.getElementById('mainViewer').src = `https://drive.google.com/embeddedfolderview?id=${d.idDrive}#list`;
+                  document.getElementById('contentOverlay').style.display = 'flex';
+              };
+              menu.appendChild(b);
+          });
+      }
+  }
+
+  window.cerrarVisor = () => {
+      document.getElementById('contentOverlay').style.display = 'none';
+      document.getElementById('mainViewer').src = "";
+  };
+
+  window.filtrarCarpetas = () => {
+      const val = document.getElementById('folderSearch').value.toLowerCase();
+      document.querySelectorAll('.folder-item').forEach(b => {
+          b.style.display = b.innerText.toLowerCase().includes(val) ? "flex" : "none";
+      });
+  };
+</script>
+
+</body>
+</html>
